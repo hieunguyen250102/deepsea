@@ -16,15 +16,37 @@ import { MAX_PLAYERS } from '../../shared/engine';
 import type { ActAction } from '../../shared/types';
 
 const PORT = Number(process.env.PORT) || 4100;
-const ORIGINS = (process.env.CLIENT_ORIGIN ?? '*')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
+/** "https://a.vercel.app/" and "HTTPS://A.vercel.app" name the same origin as the browser's "https://a.vercel.app". */
+const normalizeOrigin = (o: string) => o.trim().replace(/\/+$/, '').toLowerCase();
+
+const ORIGINS = (process.env.CLIENT_ORIGIN ?? '*').split(',').map(normalizeOrigin).filter(Boolean);
+
+/** Entries may use `*` as a wildcard, e.g. https://deepsea-*.vercel.app for preview deploys. */
+const ORIGIN_PATTERNS = ORIGINS.map(
+  (o) => new RegExp(`^${o.split('*').map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('[^/]*')}$`),
+);
+
+const rejectedOrigins = new Set<string>();
+
+function originAllowed(origin: string | undefined): boolean {
+  // Same-origin requests, curl and health checks send no Origin header.
+  if (!origin || ORIGINS.includes('*')) return true;
+  const o = normalizeOrigin(origin);
+  if (ORIGIN_PATTERNS.some((re) => re.test(o))) return true;
+  if (!rejectedOrigins.has(o) && rejectedOrigins.size < 50) {
+    rejectedOrigins.add(o);
+    console.warn(`[cors] blocked origin ${o} — CLIENT_ORIGIN is "${process.env.CLIENT_ORIGIN}"`);
+  }
+  return false;
+}
+
+const corsOrigin = (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) =>
+  cb(null, originAllowed(origin));
 
 const app = express();
 // Render (and most hosts) sit behind a proxy; the rate limits need the real client IP.
 app.set('trust proxy', 1);
-app.use(cors({ origin: ORIGINS.includes('*') ? true : ORIGINS }));
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '4kb' }));
 
 const rooms = new Map<string, Room>();
@@ -36,6 +58,8 @@ app.get('/health', (_req, res) => {
     sockets: io.engine.clientsCount,
     // false means HOST_EMAILS is unset and *anyone* who logs in can open a table
     hostRestricted: hostingIsRestricted(),
+    // what CLIENT_ORIGIN resolved to, so a CORS mismatch can be spotted from outside
+    allowedOrigins: ORIGINS,
     uptime: process.uptime(),
   });
 });
@@ -54,7 +78,7 @@ app.post('/auth/verify', (req, res) => {
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: ORIGINS.includes('*') ? true : ORIGINS, methods: ['GET', 'POST'] },
+  cors: { origin: corsOrigin, methods: ['GET', 'POST'] },
   pingInterval: 20000,
   pingTimeout: 25000,
 });
