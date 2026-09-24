@@ -1,0 +1,290 @@
+@import 'tailwindcss';
+
+/*
+ * Picture-book underwater palette: sand-paper panels with ink text, floating
+ * over a sea that darkens with depth. Matte fills, soft shadows, no glow.
+ */
+@theme {
+  --color-abyss: #0b1d2b;
+  --color-deep: #0f2a3d;
+  --color-sea: #1d5570;
+  --color-shallow: #3f8ea3;
+  --color-foam: #e9f3ef;
+  --color-sand: #f5ecd9;
+  --color-sand-2: #eadcc0;
+  --color-sand-3: #dccaa5;
+  --color-ink: #13293a;
+  --color-ink-soft: #3c5364;
+  --color-coral: #e0694e;
+  --color-coral-deep: #c4533a;
+  --color-kelp: #3f8f6a;
+  --color-gold: #e3ad45;
+  --color-danger: #d4533f;
+
+  --font-display: 'Baloo 2', system-ui, sans-serif;
+  --font-body: 'Be Vietnam Pro', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-foam);
+  background: var(--color-deep);
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The page itself is the sea: light from above, dark below. */
+.ocean-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(120% 55% at 50% -12%, rgba(173, 222, 226, 0.28), transparent 70%),
+    linear-gradient(180deg, #245e78 0%, #164560 30%, #0f2d42 65%, #0b1f2e 100%);
+}
+
+/* Sand-paper cards. */
+.paper {
+  background: var(--color-sand);
+  color: var(--color-ink);
+  border: 1px solid rgba(19, 41, 58, 0.12);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 14px 30px -18px rgba(4, 14, 22, 0.75);
+}
+
+/* A glassless dark panel for use over the sea. */
+.tide {
+  background: rgba(10, 30, 44, 0.72);
+  border: 1px solid rgba(233, 243, 239, 0.1);
+  box-shadow: 0 14px 30px -20px rgba(0, 0, 0, 0.8);
+}
+
+.rule {
+  background: rgba(19, 41, 58, 0.12);
+  height: 1px;
+}
+
+.field {
+  width: 100%;
+  border-radius: 12px;
+  border: 1.5px solid rgba(19, 41, 58, 0.18);
+  background: #fffaf0;
+  padding: 0.65rem 0.9rem;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.field::placeholder {
+  color: rgba(19, 41, 58, 0.35);
+}
+.field:focus {
+  border-color: var(--color-sea);
+}
+
+.label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(19, 41, 58, 0.55);
+}
+
+.btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border-radius: 14px;
+  padding: 0.6rem 1.15rem;
+  transition:
+    transform 0.1s ease,
+    background-color 0.15s ease,
+    box-shadow 0.1s ease,
+    filter 0.15s ease;
+}
+.btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* Chunky, toy-like buttons with a pressed-down bottom edge. */
+.btn-coral {
+  background: var(--color-coral);
+  color: #fff8f2;
+  box-shadow: 0 3px 0 var(--color-coral-deep);
+}
+.btn-sea {
+  background: var(--color-sea);
+  color: var(--color-foam);
+  box-shadow: 0 3px 0 #123a4f;
+}
+.btn-kelp {
+  background: var(--color-kelp);
+  color: #f1fbf5;
+  box-shadow: 0 3px 0 #2c6a4d;
+}
+.btn-sand {
+  background: #fffaf0;
+  color: var(--color-ink);
+  border: 1.5px solid rgba(19, 41, 58, 0.18);
+  box-shadow: 0 3px 0 rgba(19, 41, 58, 0.18);
+}
+.btn-ghost {
+  background: rgba(233, 243, 239, 0.08);
+  color: var(--color-foam);
+  border: 1px solid rgba(233, 243, 239, 0.14);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(233, 243, 239, 0.14);
+  filter: none;
+}
+
+.display {
+  font-family: var(--font-display);
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(19, 41, 58, 0.25) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(19, 41, 58, 0.25);
+  border-radius: 999px;
+}
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ------------------------------------------------------------- ambience */
+
+@keyframes rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--o, 0.5);
+  }
+  50% {
+    transform: translate3d(var(--dx, 8px), -50vh, 0);
+  }
+  90% {
+    opacity: var(--o, 0.5);
+  }
+  100% {
+    transform: translate3d(0, -100vh, 0);
+    opacity: 0;
+  }
+}
+.bubble {
+  position: absolute;
+  bottom: -20px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(233, 243, 239, 0.55);
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), transparent 55%);
+  animation: rise linear infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes sway {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+.sway {
+  transform-origin: 50% 100%;
+  animation: sway ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(-15vw);
+  }
+  to {
+    transform: translateX(115vw);
+  }
+}
+.drift {
+  animation: drift linear infinite;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+.bob {
+  animation: bob 3.2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.rays {
+  animation: shimmer 7s ease-in-out infinite;
+}
+
+/* Cards get a 3-D flip; the wrapper owns the perspective. */
+.flip3d {
+  perspective: 800px;
+}
+.flip3d-inner {
+  transform-style: preserve-3d;
+}
+.flip3d-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
