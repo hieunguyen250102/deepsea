@@ -11,7 +11,7 @@ import { Server, type Socket } from 'socket.io';
 
 import { Room, DIVE_END_PAUSE_MS, DIVER_COLORS } from './room';
 import { chooseMove } from './bot';
-import { authError, authHandler, originPolicy, socketAuth } from 'oink-kit/server';
+import { authError, authHandler, NO_SEAT, originPolicy, seatId, socketAuth } from 'oink-kit/server';
 import { auth, type User } from './auth';
 import { MAX_PLAYERS } from '../../shared/engine';
 import type { ActAction } from '../../shared/types';
@@ -163,7 +163,7 @@ setInterval(
 type Ack<T> = (res: T) => void;
 type JoinAck = Ack<{ roomCode?: string; error?: string }>;
 
-/** Anyone may connect, but only a signed-in socket gets a seat. */
+/** Anyone may connect and join; only a signed-in host account may create a room. */
 io.use(socketAuth(auth));
 
 io.on('connection', (socket: Socket) => {
@@ -172,7 +172,9 @@ io.on('connection', (socket: Socket) => {
   let playerId: string | null = null;
   const chatTimes: number[] = [];
 
-  socket.emit('session', { user });
+  // Who we seat you as: your account when logged in, else this browser's guest id.
+  const seat = seatId(socket);
+  socket.emit('session', { user, seatId: seat });
 
   const fail = (msg: string) => socket.emit('errorMsg', { message: msg });
   const myRoom = () => (joinedCode ? rooms.get(joinedCode) : undefined);
@@ -203,21 +205,22 @@ io.on('connection', (socket: Socket) => {
   socket.on(
     'room:join',
     ({ roomCode, name, color }: { roomCode: string; name: string; color: number }, ack?: JoinAck) => {
-      const denied = authError(user);
-      if (denied || !user) return ack?.({ error: denied });
+      // No login needed to join: a guest sits under this browser's guest id.
+      const pid = seat;
+      if (!pid) return ack?.({ error: NO_SEAT });
       const room = rooms.get(String(roomCode ?? '').toUpperCase().trim());
       if (!room) return ack?.({ error: 'Không tìm thấy phòng' });
 
-      if (room.find(user.id)) {
+      if (room.find(pid)) {
         // Reconnecting into a seat we already own — works mid-game too.
-        room.setConnected(user.id, true, socket.id);
+        room.setConnected(pid, true, socket.id);
       } else {
-        const player = room.addPlayer({ id: user.id, name: cleanName(name), color: cleanColor(color), socketId: socket.id });
+        const player = room.addPlayer({ id: pid, name: cleanName(name), color: cleanColor(color), socketId: socket.id });
         if (!player) {
           return ack?.({ error: room.phase === 'lobby' ? `Tàu đã đủ ${MAX_PLAYERS} thợ lặn` : 'Ván đã bắt đầu' });
         }
       }
-      enter(room, user.id, ack);
+      enter(room, pid, ack);
     },
   );
 
